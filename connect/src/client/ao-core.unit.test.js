@@ -107,6 +107,23 @@ describe('ao-core rng', () => {
     })
   })
 
+  test('maps Any-Honest verification to the unified rng device', async () => {
+    const requests = []
+    const rng = rngWith({
+      aoCore: { request: async (args) => { requests.push(args); return responseWith({ valid: true }) } }
+    })
+
+    await rng.generator()
+    await rng.verifyReveal({ c: '1', alpha: '2', h: '3' })
+    await rng.verifyCrack({ x: '1', t: 8, y: '2', proof: '3' })
+
+    assert.deepStrictEqual(requests, [
+      { path: '~rng@1.0/generator', accept: 'application/json' },
+      { path: '~rng@1.0/verify-reveal', accept: 'application/json', c: '1', alpha: '2', h: '3' },
+      { path: '~rng@1.0/verify-crack', accept: 'application/json', x: '1', t: 8, y: '2', proof: '3' }
+    ])
+  })
+
   test('rejects malformed protocol inputs before sending', () => {
     let called = false
     const rng = rngWith({
@@ -117,6 +134,8 @@ describe('ao-core rng', () => {
       publicKey: 'bad', beacon: 'bad', round: 0, signature: 'bad'
     }))
     assert.throws(() => rng.derive({ seed: 'seed', counter: -1, bytes: 32 }))
+    assert.throws(() => rng.verifyReveal({ c: '01', alpha: '2', h: '3' }))
+    assert.throws(() => rng.verifyCrack({ x: '1', t: 2 ** 32 + 1, y: '2', proof: '3' }))
     assert.equal(called, false)
   })
 })

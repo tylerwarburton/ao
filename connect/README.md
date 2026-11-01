@@ -240,7 +240,14 @@ const derived = await rng.derive({
   counter: 0,
   bytes: 32
 }).then(response => response.json())
+
+const group = await rng.generator().then(response => response.json())
+const reveal = await rng.verifyReveal({ c, alpha, h: BEACON_H }).then(response => response.json())
+const crack = await rng.verifyCrack({ x: c, t, y, proof }).then(response => response.json())
 ```
+
+`generator`, `verifyReveal`, and `verifyCrack` expose the Any-Honest time-lock
+checks through the same `~rng@1.0` namespace.
 
 #### `monitor`
 

@@ -83,7 +83,13 @@ export function requestWith(deps) {
  */
 export function rngWith(deps) {
   const request = requestWith(deps)
+  const assertCanonicalHex = (name, value, maxLength) => {
+    if (!/^(0|[1-9a-f][0-9a-f]*)$/.test(value) || value.length > maxLength) {
+      throw new TypeError(`${name} must be lowercase canonical hex of at most ${maxLength} characters`)
+    }
+  }
   return {
+    generator: () => request({ path: '~rng@1.0/generator', accept: 'application/json' }),
     /**
      * @param {{ publicKey: string, beacon: string, round: number, signature: string }} args
      */
@@ -113,6 +119,27 @@ export function rngWith(deps) {
         counter,
         bytes
       })
+    },
+    /**
+     * @param {{ c: string, alpha: string, h: string }} args
+     */
+    verifyReveal: ({ c, alpha, h }) => {
+      assertCanonicalHex('c', c, 512)
+      assertCanonicalHex('alpha', alpha, 128)
+      assertCanonicalHex('h', h, 512)
+      return request({ path: '~rng@1.0/verify-reveal', accept: 'application/json', c, alpha, h })
+    },
+    /**
+     * @param {{ x: string, t: number, y: string, proof: string }} args
+     */
+    verifyCrack: ({ x, t, y, proof }) => {
+      assertCanonicalHex('x', x, 512)
+      if (!Number.isSafeInteger(t) || t < 0 || t > 2 ** 32) {
+        throw new RangeError('t must be an integer from 0 to 2^32')
+      }
+      assertCanonicalHex('y', y, 512)
+      assertCanonicalHex('proof', proof, 512)
+      return request({ path: '~rng@1.0/verify-crack', accept: 'application/json', x, t, y, proof })
     }
   }
 }
